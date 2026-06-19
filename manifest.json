@@ -2,7 +2,7 @@
   "name": "Vitrine Imobiliária — Portal de Corretores",
   "short_name": "Vitrine Imob.",
   "description": "Portal de corretores do Cartório de Imóveis — Vitrine Imobiliária",
-  "start_url": "./index2.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
