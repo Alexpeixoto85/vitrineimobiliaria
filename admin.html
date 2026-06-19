@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Cartório de Imóveis — Painel Gerencial</title>
+<meta name="theme-color" content="#1C1E1D">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   DESIGN TOKENS — herdados do app (Cartório de Imóveis)
+   ============================================================ */
+:root {
+  --ink: #1C1E1D;
+  --paper: #FAF8F4;
+  --paper-dim: #F0ECE3;
+  --line: #D8D2C4;
+  --line-soft: #E8E3D7;
+  --terracotta: #B5512A;
+  --terracotta-deep: #8F3F1F;
+  --olive: #5C6650;
+  --olive-deep: #444C3B;
+  --rust: #9C3B2E;
+  --amber: #B7872E;
+  --ink-soft: #5A5650;
+
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --radius: 2px;
+  --shadow-card: 0 1px 0 rgba(28,30,29,0.04), 0 8px 24px -12px rgba(28,30,29,0.18);
+  --shadow-modal: 0 24px 64px -16px rgba(28,30,29,0.35);
+
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+
+  --sidebar-w: 256px;
+  --vh-full: 100vh;
+}
+@supports (height: 100dvh) { :root { --vh-full: 100dvh; } }
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  min-height: var(--vh-full);
+}
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
+a { color: var(--terracotta-deep); }
+::selection { background: var(--terracotta); color: var(--paper); }
+img { max-width: 100%; }
+:focus-visible { outline: 2px solid var(--terracotta); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+
+/* ============================================================
+   VIEW SWITCHING
+   ============================================================ */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ============================================================
+   LOGIN / SETUP
+   ============================================================ */
+.auth { min-height: var(--vh-full); display: grid; grid-template-columns: 1.1fr 1fr; }
+.auth-brand {
+  background: var(--ink); color: var(--paper);
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 5vw 4.5rem; position: relative; overflow: hidden;
+}
+.auth-brand::before {
+  content: ''; position: absolute; inset: 0;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(250,248,244,.035) 39px, rgba(250,248,244,.035) 40px);
+  pointer-events: none;
+}
+.auth-stamp {
+  font-family: var(--font-mono); font-size: .7rem; letter-spacing: .18em;
+  color: var(--terracotta); border: 1px solid var(--terracotta);
+  display: inline-block; padding: .5rem .75rem; width: fit-content;
+  margin-bottom: 2.5rem; transform: rotate(-2deg); line-height: 1.4;
+}
+.auth-title {
+  font-family: var(--font-display); font-weight: 600;
+  font-size: clamp(2.4rem, 4.5vw, 3.6rem); line-height: 1.04; margin: 0 0 1rem;
+}
+.auth-title em { font-style: italic; font-weight: 500; color: var(--terracotta); display: block; }
+.auth-sub { font-size: 1.02rem; color: #C9C4B8; max-width: 24rem; line-height: 1.55; }
+.auth-meta {
+  margin-top: auto; padding-top: 3rem; font-family: var(--font-mono);
+  font-size: .7rem; letter-spacing: .12em; color: #7C766B;
+}
+.auth-card {
+  background: var(--paper); display: flex; flex-direction: column; justify-content: center;
+  padding: 5vw 4.5rem;
+}
+.auth-eyebrow {
+  font-family: var(--font-mono); font-size: .72rem; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--terracotta-deep); margin-bottom: .75rem;
+}
+.auth-card h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.8rem; margin: 0 0 .4rem; }
+.auth-card p.lead { color: var(--ink-soft); margin: 0 0 2rem; font-size: .95rem; line-height: 1.5; }
+.auth-form { display: flex; flex-direction: column; gap: 1.1rem; max-width: 26rem; }
+
+/* ============================================================
+   FORM ELEMENTS
+   ============================================================ */
+.field { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+.field-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+.field-row .field { flex: 1; min-width: 140px; }
+.field-label {
+  font-size: .78rem; font-weight: 600; color: var(--ink-soft);
+  letter-spacing: .02em; text-transform: uppercase;
+}
+.field input, .field select, .field textarea {
+  border: 1px solid var(--line); background: var(--paper);
+  padding: .7rem .85rem; border-radius: var(--radius); font-size: .95rem;
+  color: var(--ink); transition: border-color .15s, box-shadow .15s; width: 100%;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none; border-color: var(--terracotta);
+  box-shadow: 0 0 0 3px rgba(181,81,42,.12);
+}
+.field textarea { resize: vertical; min-height: 64px; }
+.field-hint { font-size: .76rem; color: var(--ink-soft); }
+.field-error { color: var(--rust); font-size: .85rem; min-height: 1.1em; margin: 0; }
+
+.btn {
+  border: 1px solid transparent; border-radius: var(--radius);
+  padding: .7rem 1.2rem; font-size: .9rem; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  transition: background .15s, border-color .15s, color .15s, opacity .15s; white-space: nowrap;
+}
+.btn-primary { background: var(--terracotta); color: var(--paper); }
+.btn-primary:hover { background: var(--terracotta-deep); }
+.btn-secondary { background: transparent; border-color: var(--line); color: var(--ink); }
+.btn-secondary:hover { border-color: var(--ink); }
+.btn-danger { background: transparent; border-color: var(--rust); color: var(--rust); }
+.btn-danger:hover { background: var(--rust); color: var(--paper); }
+.btn-text { background: none; color: var(--terracotta-deep); padding: .4rem .2rem; }
+.btn-text:hover { text-decoration: underline; }
+.btn-block { width: 100%; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-sm { padding: .45rem .75rem; font-size: .82rem; }
+
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+.shell { display: grid; grid-template-columns: var(--sidebar-w) 1fr; min-height: var(--vh-full); }
+.sidebar {
+  background: var(--ink); color: var(--paper);
+  display: flex; flex-direction: column;
+  padding: calc(1.5rem + var(--sat)) 0 1.5rem;
+  position: sticky; top: 0; height: var(--vh-full);
+}
+.sidebar-brand { padding: 0 1.5rem 1.5rem; border-bottom: 1px solid rgba(250,248,244,.1); }
+.sidebar-stamp {
+  font-family: var(--font-mono); font-size: .62rem; letter-spacing: .16em;
+  color: var(--terracotta); border: 1px solid var(--terracotta);
+  display: inline-block; padding: .3rem .5rem; transform: rotate(-2deg); line-height: 1.3; margin-bottom: .9rem;
+}
+.sidebar-title { font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; line-height: 1.1; }
+.sidebar-title em { font-style: italic; color: var(--terracotta); }
+.nav { display: flex; flex-direction: column; padding: 1rem .75rem; gap: .15rem; flex: 1; }
+.nav-item {
+  background: none; border: none; color: #C9C4B8;
+  display: flex; align-items: center; gap: .7rem;
+  padding: .7rem .75rem; border-radius: var(--radius);
+  font-size: .92rem; font-weight: 500; text-align: left; transition: background .15s, color .15s;
+}
+.nav-item:hover { background: rgba(250,248,244,.06); color: var(--paper); }
+.nav-item.active { background: rgba(181,81,42,.18); color: var(--paper); }
+.nav-item .nav-icon { width: 18px; height: 18px; flex: none; stroke: currentColor; }
+.nav-item .nav-badge {
+  margin-left: auto; font-family: var(--font-mono); font-size: .7rem;
+  background: rgba(250,248,244,.1); padding: .1rem .4rem; border-radius: 999px;
+}
+.sidebar-foot { padding: 1rem 1.5rem 0; border-top: 1px solid rgba(250,248,244,.1); }
+.sidebar-admin { font-size: .82rem; color: #C9C4B8; margin-bottom: .25rem; }
+.sidebar-admin strong { color: var(--paper); display: block; font-size: .92rem; }
+.sidebar-cloud { font-family: var(--font-mono); font-size: .66rem; letter-spacing: .06em; margin: .6rem 0; display: flex; align-items: center; gap: .4rem; color: #9D988C; }
+.cloud-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--ink-soft); flex: none; }
+.cloud-dot.online { background: #5C8A4A; box-shadow: 0 0 0 3px rgba(92,138,74,.2); }
+.cloud-dot.offline { background: var(--rust); }
+
+.main {
+  padding: calc(2rem + var(--sat)) clamp(1.25rem, 4vw, 3rem) calc(3rem + var(--sab));
+  max-width: 1240px; width: 100%; margin: 0 auto;
+}
+.page { display: none; }
+.page.active { display: block; animation: fade .25s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.75rem; }
+.eyebrow { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; color: var(--terracotta-deep); margin-bottom: .5rem; }
+.page-title { font-family: var(--font-display); font-weight: 600; font-size: clamp(1.7rem, 3vw, 2.3rem); line-height: 1.05; margin: 0; }
+.page-sub { color: var(--ink-soft); font-size: .95rem; margin: .4rem 0 0; }
+
+/* ============================================================
+   METRIC CARDS — estilo "livro de protocolo"
+   ============================================================ */
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; margin-bottom: 2rem; }
+.metric { background: var(--paper); padding: 1.4rem 1.5rem; position: relative; }
+.metric-label { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); display: flex; align-items: center; gap: .5rem; }
+.metric-value { font-family: var(--font-display); font-weight: 600; font-size: 2.4rem; line-height: 1; margin: .6rem 0 .2rem; font-variant-numeric: tabular-nums; }
+.metric-meta { font-size: .82rem; color: var(--ink-soft); }
+.metric-meta b { color: var(--olive-deep); font-weight: 600; }
+.metric-accent { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--terracotta); }
+.metric.olive .metric-accent { background: var(--olive); }
+.metric.amber .metric-accent { background: var(--amber); }
+.metric.rust .metric-accent { background: var(--rust); }
+
+/* ============================================================
+   PANELS / CARDS
+   ============================================================ */
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-card); margin-bottom: 1.5rem; }
+.panel-head { padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--line-soft); display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.panel-head h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.15rem; margin: 0; }
+.panel-head .panel-sub { font-size: .82rem; color: var(--ink-soft); margin-top: .15rem; }
+.panel-body { padding: 1.4rem; }
+
+.cols-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.5rem; align-items: start; }
+
+/* chart */
+.chart-wrap { width: 100%; }
+.chart-legend { display: flex; gap: 1.25rem; font-size: .8rem; color: var(--ink-soft); margin-top: .75rem; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: .4rem; }
+.legend-swatch { width: 11px; height: 11px; border-radius: 2px; flex: none; }
+.bar-g rect { transition: opacity .15s; }
+
+/* activity list */
+.activity { list-style: none; margin: 0; padding: 0; }
+.activity li { display: flex; align-items: center; gap: .85rem; padding: .7rem 0; border-bottom: 1px solid var(--line-soft); font-size: .9rem; }
+.activity li:last-child { border-bottom: none; }
+.activity .ava { width: 34px; height: 34px; border-radius: 999px; background: var(--ink); color: var(--paper); display: grid; place-items: center; font-weight: 600; font-size: .85rem; flex: none; font-family: var(--font-display); }
+.activity .meta { color: var(--ink-soft); font-size: .78rem; }
+.activity time { margin-left: auto; font-family: var(--font-mono); font-size: .72rem; color: var(--ink-soft); white-space: nowrap; }
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+.table-wrap { overflow-x: auto; }
+table.data { width: 100%; border-collapse: collapse; font-size: .9rem; }
+table.data th {
+  text-align: left; font-family: var(--font-mono); font-size: .68rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-soft); font-weight: 600;
+  padding: .8rem 1rem; border-bottom: 1px solid var(--line); white-space: nowrap;
+}
+table.data td { padding: .85rem 1rem; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+table.data tr:last-child td { border-bottom: none; }
+table.data tbody tr:hover { background: var(--paper-dim); }
+.cell-strong { font-weight: 600; }
+.cell-mono { font-family: var(--font-mono); font-size: .82rem; color: var(--ink-soft); }
+.cell-actions { display: flex; gap: .5rem; justify-content: flex-end; }
+.tag { display: inline-block; font-family: var(--font-mono); font-size: .68rem; letter-spacing: .06em; padding: .2rem .5rem; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-soft); }
+.tag.on { color: var(--olive-deep); border-color: var(--olive); background: rgba(92,102,80,.08); }
+.tag.off { color: var(--ink-soft); }
+
+/* ============================================================
+   BANNERS
+   ============================================================ */
+.banner-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; }
+.banner-card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); overflow: hidden; box-shadow: var(--shadow-card); display: flex; flex-direction: column; }
+.banner-thumb { aspect-ratio: 16/6; background: var(--paper-dim) center/cover no-repeat; border-bottom: 1px solid var(--line-soft); display: grid; place-items: center; color: var(--ink-soft); font-family: var(--font-mono); font-size: .78rem; }
+.banner-card-body { padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: .6rem; flex: 1; }
+.banner-card-title { font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: .5rem; }
+.banner-card-link { font-family: var(--font-mono); font-size: .74rem; color: var(--terracotta-deep); word-break: break-all; }
+.banner-stats { display: flex; gap: 1.25rem; margin-top: auto; padding-top: .6rem; border-top: 1px solid var(--line-soft); }
+.banner-stat .n { font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.banner-stat .l { font-family: var(--font-mono); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
+.banner-card-foot { display: flex; gap: .5rem; padding: .8rem 1.1rem; border-top: 1px solid var(--line-soft); }
+.placements { display: flex; flex-wrap: wrap; gap: .3rem; }
+
+/* placement checkboxes */
+.checks { display: flex; flex-wrap: wrap; gap: .5rem; }
+.check {
+  display: flex; align-items: center; gap: .45rem; border: 1px solid var(--line);
+  padding: .45rem .7rem; border-radius: var(--radius); font-size: .85rem; cursor: pointer; user-select: none;
+}
+.check input { accent-color: var(--terracotta); }
+.check.checked { border-color: var(--terracotta); background: rgba(181,81,42,.06); }
+
+.switch { position: relative; display: inline-flex; align-items: center; gap: .6rem; cursor: pointer; }
+.switch input { position: absolute; opacity: 0; }
+.switch .track { width: 40px; height: 22px; border-radius: 999px; background: var(--line); transition: background .15s; flex: none; }
+.switch .thumb { position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 999px; background: var(--paper); transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.switch input:checked + .track { background: var(--olive); }
+.switch input:checked + .track + .thumb { transform: translateX(18px); }
+
+/* live preview */
+.preview-frame { border: 1px dashed var(--line); border-radius: var(--radius); padding: 1rem; background: var(--paper-dim); }
+.preview-label { font-family: var(--font-mono); font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: .6rem; }
+
+/* mounted banner look (mirrors the app slot) */
+.ad-banner { display: block; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--ink); position: relative; text-decoration: none; }
+.ad-banner img { display: block; width: 100%; height: auto; }
+.ad-banner .ad-fallback { padding: 1.5rem; color: var(--paper); text-align: center; font-family: var(--font-display); }
+.ad-flag { position: absolute; top: 8px; right: 8px; font-family: var(--font-mono); font-size: .56rem; letter-spacing: .1em; color: rgba(250,248,244,.75); background: rgba(28,30,29,.55); padding: .15rem .4rem; border-radius: 2px; text-transform: uppercase; }
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+.empty { text-align: center; padding: 3rem 1.5rem; color: var(--ink-soft); }
+.empty h4 { font-family: var(--font-display); font-weight: 600; font-size: 1.2rem; color: var(--ink); margin: 0 0 .4rem; }
+.empty p { margin: 0 0 1.25rem; font-size: .92rem; }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-overlay { position: fixed; inset: 0; background: rgba(28,30,29,.55); backdrop-filter: blur(2px); display: none; align-items: center; justify-content: center; padding: 1rem; z-index: 100; }
+.modal-overlay.active { display: flex; }
+.modal { background: var(--paper); border-radius: var(--radius); box-shadow: var(--shadow-modal); width: 100%; max-width: 640px; max-height: 92vh; overflow-y: auto; }
+.modal-head { padding: 1.3rem 1.5rem; border-bottom: 1px solid var(--line-soft); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--paper); z-index: 1; }
+.modal-head h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; margin: 0; }
+.modal-close { background: none; border: none; font-size: 1.6rem; line-height: 1; color: var(--ink-soft); padding: .2rem .4rem; }
+.modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.1rem; }
+.modal-foot { padding: 1.1rem 1.5rem; border-top: 1px solid var(--line-soft); display: flex; gap: .75rem; justify-content: flex-end; flex-wrap: wrap; position: sticky; bottom: 0; background: var(--paper); }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+#toast-wrap { position: fixed; bottom: calc(1.25rem + var(--sab)); left: 50%; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; gap: .5rem; align-items: center; width: max-content; max-width: 90vw; }
+.toast { background: var(--ink); color: var(--paper); padding: .8rem 1.2rem; border-radius: var(--radius); font-size: .88rem; box-shadow: var(--shadow-modal); animation: toastin .2s ease; }
+.toast.err { background: var(--rust); }
+@keyframes toastin { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 900px) {
+  .auth { grid-template-columns: 1fr; }
+  .auth-brand { display: none; }
+  .auth-card { padding: 8vw 7vw; }
+  .cols-2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .shell { grid-template-columns: 1fr; }
+  .sidebar {
+    position: sticky; top: 0; height: auto; flex-direction: row; align-items: center;
+    padding: calc(.5rem + var(--sat)) .75rem .5rem; gap: .5rem; z-index: 30;
+    overflow-x: auto;
+  }
+  .sidebar-brand { display: none; }
+  .nav { flex-direction: row; padding: 0; gap: .25rem; flex: 1; }
+  .nav-item { padding: .55rem .7rem; font-size: .82rem; white-space: nowrap; }
+  .nav-item .nav-badge { display: none; }
+  .sidebar-foot { display: none; }
+  .nav-item span.lbl { display: none; }
+  .nav-item.active span.lbl { display: inline; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================ LOGIN / SETUP ============================ -->
+<section class="view view-auth active" id="view-auth">
+  <div class="auth">
+    <div class="auth-brand">
+      <span class="auth-stamp">PROTOCOLO ADMIN · ACESSO RESTRITO</span>
+      <h1 class="auth-title">Painel <em>gerencial</em></h1>
+      <p class="auth-sub">Banners, corretores e métricas da plataforma — sincronizados em tempo real com a nuvem do Cartório de Imóveis.</p>
+      <div class="auth-meta">CARTÓRIO DE IMÓVEIS · BACK-OFFICE</div>
+    </div>
+    <div class="auth-card">
+      <!-- LOGIN -->
+      <form class="auth-form" id="form-admin-login">
+        <div>
+          <div class="auth-eyebrow">Entrada administrativa</div>
+          <h2>Entrar no painel</h2>
+          <p class="lead">Acesso exclusivo de administrador. Não compartilha login com os corretores.</p>
+        </div>
+        <div class="field">
+          <label class="field-label" for="admin-email">E-mail</label>
+          <input type="email" id="admin-email" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label class="field-label" for="admin-password">Senha</label>
+          <input type="password" id="admin-password" autocomplete="current-password" required>
+        </div>
+        <p class="field-error" id="login-error"></p>
+        <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+        <p class="field-hint" id="cloud-hint">Verificando conexão com a nuvem…</p>
+      </form>
+
+      <!-- SETUP (primeiro admin) -->
+      <form class="auth-form" id="form-admin-setup" style="display:none;">
+        <div>
+          <div class="auth-eyebrow">Primeira configuração</div>
+          <h2>Criar administrador</h2>
+          <p class="lead">Nenhum administrador foi encontrado neste projeto. Crie a conta-mestre que vai gerenciar a plataforma.</p>
+        </div>
+        <div class="field">
+          <label class="field-label" for="setup-name">Nome</label>
+          <input type="text" id="setup-name" autocomplete="name" required>
+        </div>
+        <div class="field">
+          <label class="field-label" for="setup-email">E-mail</label>
+          <input type="email" id="setup-email" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label class="field-label" for="setup-password">Senha</label>
+          <input type="password" id="setup-password" autocomplete="new-password" minlength="6" required>
+          <span class="field-hint">Mínimo de 6 caracteres. A senha é guardada com hash (SHA-256).</span>
+        </div>
+        <p class="field-error" id="setup-error"></p>
+        <button type="submit" class="btn btn-primary btn-block">Criar e entrar</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ PAINEL ============================ -->
+<section class="view view-admin" id="view-admin">
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="sidebar-stamp">ADMIN · v1</span>
+        <div class="sidebar-title">Cartório de <em>Imóveis</em></div>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" data-page="overview">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 13h8V3H3zM13 21h8V3h-8zM3 21h8v-6H3z"/></svg>
+          <span class="lbl">Visão geral</span>
+        </button>
+        <button class="nav-item" data-page="banners">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 9h18M8 5v14"/></svg>
+          <span class="lbl">Banners</span><span class="nav-badge" id="badge-banners">0</span>
+        </button>
+        <button class="nav-item" data-page="users">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M16 11a3 3 0 1 0 0-6M22 20c0-2.5-2-4-4.5-4.5"/></svg>
+          <span class="lbl">Corretores</span><span class="nav-badge" id="badge-users">0</span>
+        </button>
+        <button class="nav-item" data-page="settings">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>
+          <span class="lbl">Configurações</span>
+        </button>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="sidebar-admin"><span>Administrador</span><strong id="admin-name-label">—</strong></div>
+        <div class="sidebar-cloud"><span class="cloud-dot" id="cloud-dot"></span><span id="cloud-label">conectando…</span></div>
+        <button class="btn btn-secondary btn-sm btn-block" id="btn-admin-logout">Sair do painel</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- ===== VISÃO GERAL ===== -->
+      <div class="page active" id="page-overview">
+        <div class="page-head">
+          <div>
+            <div class="eyebrow">Protocolo · tempo real</div>
+            <h1 class="page-title">Visão geral</h1>
+            <p class="page-sub">Métricas da plataforma atualizadas ao vivo conforme corretores e clientes usam o app.</p>
+          </div>
+          <div class="field" style="max-width:170px">
+            <label class="field-label" for="range-select">Período</label>
+            <select id="range-select">
+              <option value="7">Últimos 7 dias</option>
+              <option value="14">Últimos 14 dias</option>
+              <option value="30" selected>Últimos 30 dias</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="metrics" id="metrics-grid"><!-- preenchido via JS --></div>
+
+        <div class="cols-2">
+          <div class="panel">
+            <div class="panel-head">
+              <div><h3>Atividade da plataforma</h3><div class="panel-sub" id="chart-sub">Logins, impressões e cliques por dia</div></div>
+            </div>
+            <div class="panel-body">
+              <div class="chart-wrap" id="chart-wrap"></div>
+              <div class="chart-legend">
+                <span class="legend-item"><span class="legend-swatch" style="background:var(--olive)"></span>Logins</span>
+                <span class="legend-item"><span class="legend-swatch" style="background:var(--amber)"></span>Impressões</span>
+                <span class="legend-item"><span class="legend-swatch" style="background:var(--terracotta)"></span>Cliques</span>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Últimos acessos</h3></div>
+            <div class="panel-body">
+              <ul class="activity" id="recent-activity"><li class="meta">Carregando…</li></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div><h3>Desempenho dos banners</h3><div class="panel-sub">Receita potencial por criativo · CTR = cliques ÷ impressões</div></div>
+            <button class="btn btn-primary btn-sm" data-goto="banners">+ Novo banner</button>
+          </div>
+          <div class="panel-body table-wrap">
+            <table class="data" id="banner-perf-table">
+              <thead><tr><th>Banner</th><th>Status</th><th>Impressões</th><th>Cliques</th><th>CTR</th></tr></thead>
+              <tbody><tr><td colspan="5" class="meta">Carregando…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== BANNERS ===== -->
+      <div class="page" id="page-banners">
+        <div class="page-head">
+          <div>
+            <div class="eyebrow">Monetização</div>
+            <h1 class="page-title">Banners</h1>
+            <p class="page-sub">Crie e gerencie os anúncios exibidos no app. Os ativos aparecem em tempo real para os usuários.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-new-banner">+ Novo banner</button>
+        </div>
+        <div id="banners-empty" class="empty" hidden>
+          <h4>Nenhum banner ainda</h4>
+          <p>Crie seu primeiro criativo para começar a monetizar a plataforma.</p>
+          <button class="btn btn-primary" id="btn-new-banner-empty">+ Criar banner</button>
+        </div>
+        <div class="banner-grid" id="banner-grid"></div>
+      </div>
+
+      <!-- ===== CORRETORES ===== -->
+      <div class="page" id="page-users">
+        <div class="page-head">
+          <div>
+            <div class="eyebrow">Gestão de contas</div>
+            <h1 class="page-title">Corretores</h1>
+            <p class="page-sub">Usuários cadastrados na plataforma, com volume de imóveis e situação de cada conta.</p>
+          </div>
+          <div class="field" style="max-width:260px">
+            <input type="search" id="user-search" placeholder="Buscar por nome, e-mail ou CRECI…">
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-body table-wrap" style="padding:0">
+            <table class="data" id="users-table">
+              <thead><tr><th>Corretor</th><th>CRECI</th><th>Contato</th><th>Imóveis</th><th>Cadastro</th><th></th></tr></thead>
+              <tbody><tr><td colspan="6" class="meta" style="padding:1.4rem">Carregando…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CONFIGURAÇÕES ===== -->
+      <div class="page" id="page-settings">
+        <div class="page-head">
+          <div>
+            <div class="eyebrow">Conta & nuvem</div>
+            <h1 class="page-title">Configurações</h1>
+          </div>
+        </div>
+        <div class="cols-2">
+          <div class="panel">
+            <div class="panel-head"><h3>Trocar senha do administrador</h3></div>
+            <div class="panel-body">
+              <form id="form-change-pass" style="display:flex;flex-direction:column;gap:1rem;max-width:24rem">
+                <div class="field">
+                  <label class="field-label" for="cp-current">Senha atual</label>
+                  <input type="password" id="cp-current" autocomplete="current-password" required>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="cp-new">Nova senha</label>
+                  <input type="password" id="cp-new" autocomplete="new-password" minlength="6" required>
+                </div>
+                <p class="field-error" id="cp-error"></p>
+                <button type="submit" class="btn btn-primary">Atualizar senha</button>
+              </form>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Conexão com a nuvem</h3></div>
+            <div class="panel-body">
+              <p style="font-size:.9rem;color:var(--ink-soft);line-height:1.55;margin-top:0">
+                O painel usa o mesmo projeto Firebase do app — por isso as métricas e os banners
+                ficam em sincronia. Status atual:
+              </p>
+              <div class="sidebar-cloud" style="color:var(--ink-soft)"><span class="cloud-dot" id="cloud-dot-2"></span><span id="cloud-label-2">—</span></div>
+              <dl class="cell-mono" id="cloud-config" style="margin-top:1rem;line-height:1.7"></dl>
+              <p style="font-size:.82rem;color:var(--ink-soft);line-height:1.5;border-top:1px solid var(--line-soft);padding-top:1rem;margin-bottom:0">
+                <b>Segurança:</b> para produção, proteja as coleções <code>admins</code>, <code>banners</code>
+                e <code>metrics_daily</code> com Regras de Segurança do Firestore e, idealmente, Firebase Auth.
+                Veja o guia de implantação que acompanha estes arquivos.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</section>
+
+<!-- ============================ MODAL BANNER ============================ -->
+<div class="modal-overlay" id="modal-banner">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="banner-modal-title">Novo banner</h3>
+      <button class="modal-close" data-close="modal-banner" aria-label="Fechar">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label class="field-label" for="b-title">Nome do banner</label>
+        <input type="text" id="b-title" placeholder="Ex: Financiamento Banco X — campanha junho">
+        <span class="field-hint">Uso interno, para você identificar o criativo.</span>
+      </div>
+      <div class="field">
+        <label class="field-label" for="b-image-url">Imagem (URL)</label>
+        <input type="text" id="b-image-url" placeholder="https://… (proporção sugerida 16:6, ex. 1200×450)">
+      </div>
+      <div class="field">
+        <span class="field-label">ou enviar arquivo</span>
+        <input type="file" id="b-image-file" accept="image/*">
+        <span class="field-hint" id="b-upload-hint">Enviado para o Firebase Storage ao salvar.</span>
+      </div>
+      <div class="field">
+        <label class="field-label" for="b-link">Link de destino (clique)</label>
+        <input type="text" id="b-link" placeholder="https://anunciante.com/oferta">
+      </div>
+      <div class="field">
+        <span class="field-label">Onde exibir</span>
+        <div class="checks" id="b-placements">
+          <label class="check"><input type="checkbox" value="all" checked> Todas as áreas</label>
+          <label class="check"><input type="checkbox" value="dashboard"> Meus imóveis</label>
+          <label class="check"><input type="checkbox" value="explore"> Vitrine geral</label>
+          <label class="check"><input type="checkbox" value="chat"> Mensagens</label>
+          <label class="check"><input type="checkbox" value="portal"> Portal público</label>
+          <label class="check"><input type="checkbox" value="portfolio"> Portfólio do corretor</label>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <span class="field-label">Status</span>
+          <label class="switch"><input type="checkbox" id="b-active" checked><span class="track"></span><span class="thumb"></span><span style="font-size:.88rem;margin-left:.5rem" id="b-active-label">Ativo</span></label>
+        </div>
+        <div class="field">
+          <label class="field-label" for="b-weight">Peso na rotação</label>
+          <input type="number" id="b-weight" min="1" max="10" value="1">
+          <span class="field-hint">Banners com peso maior aparecem com mais frequência.</span>
+        </div>
+      </div>
+      <div class="preview-frame">
+        <div class="preview-label">Pré-visualização (como o usuário vê)</div>
+        <div id="b-preview"></div>
+      </div>
+      <p class="field-error" id="banner-error"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" id="btn-delete-banner" hidden>Excluir</button>
+      <button class="btn btn-secondary" data-close="modal-banner">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-banner">Salvar banner</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ MODAL CORRETOR ============================ -->
+<div class="modal-overlay" id="modal-user">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <h3>Editar corretor</h3>
+      <button class="modal-close" data-close="modal-user" aria-label="Fechar">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label class="field-label" for="u-name">Nome</label><input type="text" id="u-name"></div>
+      <div class="field-row">
+        <div class="field"><label class="field-label" for="u-creci">CRECI</label><input type="text" id="u-creci"></div>
+        <div class="field"><label class="field-label" for="u-whats">WhatsApp</label><input type="text" id="u-whats"></div>
+      </div>
+      <div class="field"><label class="field-label" for="u-email">E-mail</label><input type="email" id="u-email"></div>
+      <p class="field-error" id="user-error"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger" id="btn-delete-user">Excluir conta</button>
+      <button class="btn btn-secondary" data-close="modal-user">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-user">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ CONFIRM ============================ -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head"><h3 id="confirm-title">Confirmar</h3></div>
+    <div class="modal-body"><p id="confirm-text" style="margin:0;font-size:.95rem;line-height:1.55"></p></div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-close="modal-confirm">Cancelar</button>
+      <button class="btn btn-danger" id="confirm-ok">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-wrap"></div>
+
+<script type="module" src="./admin-app.js"></script>
+</body>
+</html>
